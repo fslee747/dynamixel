@@ -18,7 +18,7 @@
 # 許可證下的限制。
 ################################################################################
 
-# Author: Ryu Woon Jung (Leon)
+# Author: 黃祥晏 (Rod)
 
 #
 # *********    讀寫示例      *********
@@ -65,7 +65,8 @@ PROTOCOL_VERSION            = 1.0               # See which protocol version is 
 
 # Default setting
 #馬達的ID修改處與波特率的修改處與Port設定的地方
-DXL_ID                      = 1                 # Dynamixel ID : 1
+DXL_ID1                     = 1                 # Dynamixel ID : 1
+DXL_ID2                     = 2                 # Dynamixel ID : 2
 BAUDRATE                    = 1000000             # Dynamixel default baudrate : 1000000  
 DEVICENAME                  = 'COM9'    # Check w hich port is being used on your controller
                                                 # ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -77,7 +78,7 @@ DXL_MAXIMUM_POSITION_VALUE  = 1000            # and this value (note that the Dy
 DXL_MOVING_STATUS_THRESHOLD = 10                # Dynamixel moving status threshold 動態像素移動狀態閾值
 
 
-index = 0
+
 #dxl_goal_position = [DXL_MINIMUM_POSITION_VALUE, DXL_MAXIMUM_POSITION_VALUE]         # Goal position 的兩個位置
 
 # Initialize PortHandler instance  初始化PortHandler實例
@@ -110,7 +111,7 @@ else:
     quit()
 
 # Enable Dynamixel Torque  啟用Dynamixel Torque
-dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, ADDR_MX_TORQUE_ENABLE, TORQUE_ENABLE)
+dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID1, ADDR_MX_TORQUE_ENABLE, TORQUE_ENABLE)
 if dxl_comm_result != COMM_SUCCESS:
     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 elif dxl_error != 0:
@@ -118,59 +119,82 @@ elif dxl_error != 0:
 else:
     print("Dynamixel has been successfully connected")
 
-#cw設0
-dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, ADDR_DXL_CW_ANGLE_LIMIT, 0)
-if dxl_comm_result != COMM_SUCCESS:
-    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-elif dxl_error != 0:
-    print("%s" % packetHandler.getRxPacketError(dxl_error))
-else:
-    print("Dynamixel CW angle set to 0 successfully")
 
-#ccw設0
-dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, ADDR_DXL_CCW_ANGLE_LIMIT, 0)
-if dxl_comm_result != COMM_SUCCESS:
-    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-elif dxl_error != 0:
-    print("%s" % packetHandler.getRxPacketError(dxl_error))
-else:
-    print("Dynamixel CCW angle set to 0 successfully")
 
+angle_goal=[0,0]
+i=0
+circle=[0,0]
+angle_present=[0,0]
+angle_pass=[0,0]
+angle_present_goal=[0,0]
 while 1:
     print("Press any key to continue! (or press ESC to quit!)")
     if getch() == chr(0x1b):
         break
+    angle_present_goal[0]=angle_goal[0]  #把之前的位置給他
 
-    #Write goal velocity
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, ADDR_DXL_GOAL_SPEED,100)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    i=0
-    while 1:
-        
-        # Read present position  閱讀現在的位置
-        dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, DXL_ID, ADDR_MX_PRESENT_POSITION)
+    for j in range(1):  #給角度
+        n = int(input("num :"))
+        angle_goal[0] = n 
+    print(angle_goal[0])
+    print(angle_present_goal[0])
+    #寫下馬達的速度 當 angle_goal 大於 angle_present_goal
+    if angle_goal[0] > angle_present_goal[0] :
+        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID1, ADDR_DXL_GOAL_SPEED,1000)
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))   
-        real_pulse = dxl_present_position% 4096
-        print("[ID:%d]  PresPos:%s" % (DXL_ID, real_pulse))
-        #i用來算圈數 8次為一圈 找取中間數作為記號
-        # if dxl_present_position > 100000000 :
-        #     i=i+1
-        # if dxl_present_position > 100000000 and i==35 :#   210239560
-        #     dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, ADDR_DXL_GOAL_SPEED,0)
-        #     if dxl_comm_result != COMM_SUCCESS: 
-        #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        #     elif dxl_error != 0:
-        #         print("%s" % packetHandler.getRxPacketError(dxl_error))
-        #     break
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+    #寫下馬達的速度 當 angle_goal 小於 angle_present_goal
+    if angle_goal[0] < angle_present_goal[0] :
+        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID1, ADDR_DXL_GOAL_SPEED,2000)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
 
+
+
+
+
+    while 1: 
+        # Read present position  閱讀現在的位置
+        dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, DXL_ID1, ADDR_MX_PRESENT_POSITION)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error)) 
+
+        #判斷圈數: 正轉
+        real_pulse = dxl_present_position% 4096        
+        if real_pulse == 1023:
+            i=1
+        elif real_pulse == 0 and i == 1 and angle_goal[0] > angle_present_goal[0] :
+            circle[0]+=1
+            i=0
+            angle_pass[0]+=360
+        elif real_pulse == 0 and i == 1 and angle_goal[0] < angle_present_goal[0] :
+            circle[0]-=1
+            i=0
+            angle_pass[0]-=360
+
+
+        #紀錄角度目前位置
+        angle_present = real_pulse/3  # 1024/3
+        print("[ID:%d]  PresPos:%s  circle:%d angle:%d" % (DXL_ID1, real_pulse, circle[0],angle_present+angle_pass[0] ))
+
+
+        #目標位置停止
+        if angle_pass[0]+angle_present-80 <= angle_goal[0] <= angle_pass[0]+angle_present+80  :
+            dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID1, ADDR_DXL_GOAL_SPEED,0)
+            if dxl_comm_result != COMM_SUCCESS: 
+                print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+            elif dxl_error != 0:
+                print("%s" % packetHandler.getRxPacketError(dxl_error))         
+            break 
+        
 # Disable Dynamixel Torque  禁用Dynamixel Torque
-dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, ADDR_MX_TORQUE_ENABLE, TORQUE_DISABLE)
+dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID1, ADDR_MX_TORQUE_ENABLE, TORQUE_DISABLE)
 if dxl_comm_result != COMM_SUCCESS:
     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 elif dxl_error != 0:
@@ -178,54 +202,6 @@ elif dxl_error != 0:
 
 # Close port
 portHandler.closePort()
-
-
-    # #Read present velocity
-    # dxl_present_velocity,dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, DXL_ID, ADDR_DXL_GOAL_SPEED)
-    # if dxl_comm_result != COMM_SUCCESS:
-    #     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    # elif dxl_error != 0:
-    #     print("%s" % packetHandler.getRxPacketError(dxl_error))
-
-
-
-
-
-
-    # while 1:
-    #     (abs(1000 - dxl_present_velocity) > DXL_MOVING_STATUS_THRESHOLD)
-    #     break
-    # # Write goal position  寫出目標位置
-    # dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID, ADDR_MX_GOAL_POSITION, dxl_goal_position)
-    # if dxl_comm_result != COMM_SUCCESS:
-    #     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    # elif dxl_error != 0:
-    #     print("%s" % packetHandler.getRxPacketError(dxl_error))
-
-    # while 1:
-    #     # Read present position  閱讀現在的位置
-    #     dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, DXL_ID, ADDR_MX_PRESENT_POSITION)
-    #     if dxl_comm_result != COMM_SUCCESS:
-    #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    #     elif dxl_error != 0:
-    #         print("%s" % packetHandler.getRxPacketError(dxl_error))
-
-    #     print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID, dxl_goal_position, dxl_present_position))
-
-    #     if not abs(dxl_goal_position - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD:
-    #         break
-
-
-
-# # Disable Dynamixel Torque  禁用Dynamixel Torque
-# dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, ADDR_MX_TORQUE_ENABLE, TORQUE_DISABLE)
-# if dxl_comm_result != COMM_SUCCESS:
-#     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-# elif dxl_error != 0:
-#     print("%s" % packetHandler.getRxPacketError(dxl_error))
-
-# # Close port
-# portHandler.closePort()
    
 
 
